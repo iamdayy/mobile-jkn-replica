@@ -17,7 +17,7 @@ export default function QueueScreen() {
     { id: 'gigi', name: 'Poli Gigi', icon: 'pulse' },
   ];
 
-  const fetchMyQueue = async () => {
+  const fetchMyQueue = React.useCallback(async () => {
     if (!userData?.uid) return;
     
     // Simplification: just get the latest active queue for today
@@ -38,11 +38,11 @@ export default function QueueScreen() {
     } catch (error) {
       console.error("Error fetching queue:", error);
     }
-  };
+  }, [userData]);
 
   useEffect(() => {
     fetchMyQueue();
-  }, [userData]);
+  }, [fetchMyQueue]);
 
   const handleDaftar = async () => {
     if (!selectedPoli) {
