@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../../config/firebaseConfig';
 import { COLORS } from '../../utils/colors';
 
@@ -24,18 +22,20 @@ export default function RegisterScreen({ navigation }: any) {
     try {
       // Simulate NIK based auth using a dummy email
       const dummyEmail = `${nik}@mobilejkn.local`;
-      const userCredential = await createUserWithEmailAndPassword(auth, dummyEmail, password);
-      const uid = userCredential.user.uid;
+      const userCredential = await auth.createUserWithEmailAndPassword(dummyEmail, password);
+      const uid = userCredential.user?.uid;
 
-      // Save additional user info to Firestore
-      await setDoc(doc(db, 'users', uid), {
-        uid,
-        nik,
-        noBpjs,
-        nama,
-        faskes,
-        kelasRawat,
-      });
+      if (uid) {
+        // Save additional user info to Firestore
+        await db.collection('users').doc(uid).set({
+          uid,
+          nik,
+          noBpjs,
+          nama,
+          faskes,
+          kelasRawat,
+        });
+      }
 
       // Navigation will be handled by AppNavigator automatically
     } catch (error: any) {

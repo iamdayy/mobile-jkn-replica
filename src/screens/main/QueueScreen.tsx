@@ -1,13 +1,12 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
-import { collection, addDoc, query, where, getDocs, orderBy, limit, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../config/firebaseConfig';
+import { firebase, db } from '../../config/firebaseConfig';
 import { AuthContext } from '../../context/AuthContext';
 import { COLORS } from '../../utils/colors';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function QueueScreen() {
-  const { userData } = useContext(AuthContext);
+  const { userData } = React.useContext(AuthContext);
   const [selectedPoli, setSelectedPoli] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [antreanKu, setAntreanKu] = useState<any>(null);
@@ -24,14 +23,13 @@ export default function QueueScreen() {
     const hariIni = new Date().toISOString().split('T')[0];
     
     try {
-      const q = query(
-        collection(db, 'antrean'),
-        where('userId', '==', userData.uid),
-        where('tanggalStr', '==', hariIni),
-        orderBy('createdAt', 'desc'),
-        limit(1)
-      );
-      const snapshot = await getDocs(q);
+      const snapshot = await db.collection('antrean')
+        .where('userId', '==', userData.uid)
+        .where('tanggalStr', '==', hariIni)
+        .orderBy('createdAt', 'desc')
+        .limit(1)
+        .get();
+        
       if (!snapshot.empty) {
         setAntreanKu(snapshot.docs[0].data());
       }
@@ -60,15 +58,13 @@ export default function QueueScreen() {
       const hariIni = new Date().toISOString().split('T')[0];
       
       // Get the last queue number for today and the selected poli
-      const q = query(
-        collection(db, 'antrean'),
-        where('tanggalStr', '==', hariIni),
-        where('poli', '==', selectedPoli),
-        orderBy('nomorAntrean', 'desc'),
-        limit(1)
-      );
-      
-      const snapshot = await getDocs(q);
+      const snapshot = await db.collection('antrean')
+        .where('tanggalStr', '==', hariIni)
+        .where('poli', '==', selectedPoli)
+        .orderBy('nomorAntrean', 'desc')
+        .limit(1)
+        .get();
+        
       let nextNumber = 1;
       
       if (!snapshot.empty) {
@@ -81,10 +77,10 @@ export default function QueueScreen() {
         nomorAntrean: nextNumber,
         tanggalStr: hariIni,
         status: 'Menunggu',
-        createdAt: serverTimestamp(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       };
 
-      await addDoc(collection(db, 'antrean'), queueData);
+      await db.collection('antrean').add(queueData);
       Alert.alert('Sukses', 'Berhasil mendaftar antrean!');
       fetchMyQueue();
     } catch (error: any) {

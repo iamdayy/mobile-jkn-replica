@@ -1,6 +1,6 @@
-import { getApp, getApps, initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import firebase from 'firebase/app';
+import 'firebase/auth';
+import 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyASpwUMAICO3MzIWfKSNXCCJiBC4-WRBKU",
@@ -11,12 +11,13 @@ const firebaseConfig = {
   appId: "1:928563764915:web:fc4286d5f96b73eb40dac6",
   measurementId: "G-RNLFTYY78F"
 };
+
 // Initialize Firebase
-// Check if apps are already initialized to prevent duplicate initialization errors in Expo
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 
-// Initialize Auth & Firestore
-const auth = getAuth(app);
-const db = getFirestore(app);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-export { auth, db };
+export { firebase, auth, db };

@@ -1,6 +1,5 @@
 import React, { useContext } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { signOut } from 'firebase/auth';
 import { auth } from '../../config/firebaseConfig';
 import { AuthContext } from '../../context/AuthContext';
 import { COLORS } from '../../utils/colors';
@@ -11,7 +10,7 @@ export default function ProfileScreen() {
 
   const handleSignOut = async () => {
     try {
-      await signOut(auth);
+      await auth.signOut();
     } catch (error) {
       console.error('Error signing out: ', error);
     }

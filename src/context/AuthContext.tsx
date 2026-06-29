@@ -1,7 +1,5 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth, db } from '../config/firebaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
+import { firebase, auth, db } from '../config/firebaseConfig';
 
 interface UserData {
   uid: string;
@@ -13,7 +11,7 @@ interface UserData {
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: firebase.User | null;
   userData: UserData | null;
   loading: boolean;
   refreshUserData: () => Promise<void>;
@@ -27,14 +25,14 @@ export const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<firebase.User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchUserData = async (uid: string) => {
     try {
-      const userDoc = await getDoc(doc(db, 'users', uid));
-      if (userDoc.exists()) {
+      const userDoc = await db.collection('users').doc(uid).get();
+      if (userDoc.exists) {
         setUserData(userDoc.data() as UserData);
       } else {
         setUserData(null);
@@ -51,7 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
         await fetchUserData(currentUser.uid);

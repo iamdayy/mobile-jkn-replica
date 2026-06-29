@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../config/firebaseConfig';
 import { COLORS } from '../../utils/colors';
 
@@ -19,7 +18,7 @@ export default function LoginScreen({ navigation }: any) {
     try {
       // Simulate NIK login using email under the hood
       const dummyEmail = `${nik}@mobilejkn.local`;
-      await signInWithEmailAndPassword(auth, dummyEmail, password);
+      await auth.signInWithEmailAndPassword(dummyEmail, password);
       // Navigation will be handled automatically by onAuthStateChanged in AppNavigator
     } catch (error: any) {
       Alert.alert('Login Gagal', error.message);
