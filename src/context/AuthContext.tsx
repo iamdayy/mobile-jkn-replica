@@ -4,10 +4,8 @@ import { firebase, auth, db } from '../config/firebaseConfig';
 interface UserData {
   uid: string;
   nik: string;
-  noBpjs: string;
   nama: string;
-  faskes: string;
-  kelasRawat: string;
+  tanggalLahir: string;
 }
 
 interface AuthContextType {

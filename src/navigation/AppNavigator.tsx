@@ -9,6 +9,9 @@ import { COLORS } from '../utils/colors';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import BottomTabs from './BottomTabs';
+import FaskesRujukanScreen from '../screens/main/FaskesRujukanScreen';
+import FaskesPertamaScreen from '../screens/main/FaskesPertamaScreen';
+import KantorCabangScreen from '../screens/main/KantorCabangScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -27,8 +30,12 @@ export default function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
-          // Jika sudah login
-          <Stack.Screen name="Main" component={BottomTabs} />
+          <>
+            <Stack.Screen name="Main" component={BottomTabs} />
+            <Stack.Screen name="FaskesRujukan" component={FaskesRujukanScreen} />
+            <Stack.Screen name="FaskesPertama" component={FaskesPertamaScreen} />
+            <Stack.Screen name="KantorCabang" component={KantorCabangScreen} />
+          </>
         ) : (
           // Jika belum login
           <>
