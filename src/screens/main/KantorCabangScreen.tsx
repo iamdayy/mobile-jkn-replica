@@ -17,13 +17,20 @@ export default function KantorCabangScreen({ navigation }: any) {
     try {
       const snapshot = await db.collection('queues')
         .where('uid', '==', user.uid)
-        .where('type', '==', 'KantorCabang')
-        .where('status', '==', 'active')
-        .limit(1)
         .get();
         
       if (!snapshot.empty) {
-        setQueue(snapshot.docs[0].data());
+        // Filter secara lokal untuk menghindari error composite index Firebase
+        const activeQueue = snapshot.docs.find((doc: any) => {
+          const data = doc.data();
+          return data.type === 'KantorCabang' && data.status === 'active';
+        });
+        
+        if (activeQueue) {
+          setQueue(activeQueue.data());
+        } else {
+          setQueue(null);
+        }
       } else {
         setQueue(null);
       }
