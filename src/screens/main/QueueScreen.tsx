@@ -17,11 +17,16 @@ export default function QueueScreen({ navigation }: any) {
     try {
       const snapshot = await db.collection('queues')
         .where('uid', '==', user.uid)
-        .orderBy('createdAt', 'desc')
         .get();
         
       if (!snapshot.empty) {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Urutkan data secara manual (client-side) berdasarkan createdAt menurun (descending)
+        data.sort((a: any, b: any) => {
+          const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+          const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          return timeB - timeA;
+        });
         setQueues(data);
       } else {
         setQueues([]);
