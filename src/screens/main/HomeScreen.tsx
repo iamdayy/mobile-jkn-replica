@@ -104,7 +104,15 @@ export default function HomeScreen({ navigation }: any) {
           {/* Grid Menu */}
           <View style={styles.gridContainer}>
             {menuItems.map((item) => (
-              <TouchableOpacity key={item.id} style={styles.gridItem}>
+              <TouchableOpacity 
+                key={item.id} 
+                style={styles.gridItem}
+                onPress={() => {
+                  if (item.id === 3) {
+                    navigation.navigate('QueueScreen');
+                  }
+                }}
+              >
                 <View style={[styles.iconWrapper, { backgroundColor: item.bg }]}>
                   {item.lib === 'Ionicons' ? (
                     <Ionicons name={item.icon as any} size={28} color={item.color} />

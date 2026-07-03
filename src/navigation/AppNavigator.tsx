@@ -12,6 +12,7 @@ import BottomTabs from './BottomTabs';
 import FaskesRujukanScreen from '../screens/main/FaskesRujukanScreen';
 import FaskesPertamaScreen from '../screens/main/FaskesPertamaScreen';
 import KantorCabangScreen from '../screens/main/KantorCabangScreen';
+import QueueScreen from '../screens/main/QueueScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -35,6 +36,7 @@ export default function AppNavigator() {
             <Stack.Screen name="FaskesRujukan" component={FaskesRujukanScreen} />
             <Stack.Screen name="FaskesPertama" component={FaskesPertamaScreen} />
             <Stack.Screen name="KantorCabang" component={KantorCabangScreen} />
+            <Stack.Screen name="QueueScreen" component={QueueScreen} />
           </>
         ) : (
           // Jika belum login

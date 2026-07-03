@@ -1,291 +1,253 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
-import { firebase, db } from '../../config/firebaseConfig';
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, Platform, SafeAreaView } from 'react-native';
+import { db } from '../../config/firebaseConfig';
 import { AuthContext } from '../../context/AuthContext';
 import { COLORS } from '../../utils/colors';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
-export default function QueueScreen() {
-  const { userData } = React.useContext(AuthContext);
-  const [selectedPoli, setSelectedPoli] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [antreanKu, setAntreanKu] = useState<any>(null);
+export default function QueueScreen({ navigation }: any) {
+  const { user } = useContext(AuthContext);
+  const [loading, setLoading] = useState(true);
+  const [queues, setQueues] = useState<any[]>([]);
 
-  const poliklinik = [
-    { id: 'umum', name: 'Poli Umum', icon: 'medical' },
-    { id: 'gigi', name: 'Poli Gigi', icon: 'pulse' },
-  ];
-
-  const fetchMyQueue = React.useCallback(async () => {
-    if (!userData?.uid) return;
-    
-    // Simplification: just get the latest active queue for today
-    const hariIni = new Date().toISOString().split('T')[0];
+  const fetchQueues = React.useCallback(async () => {
+    if (!user?.uid) return;
     
     try {
-      const snapshot = await db.collection('antrean')
-        .where('userId', '==', userData.uid)
-        .where('tanggalStr', '==', hariIni)
+      const snapshot = await db.collection('queues')
+        .where('uid', '==', user.uid)
         .orderBy('createdAt', 'desc')
-        .limit(1)
         .get();
         
       if (!snapshot.empty) {
-        setAntreanKu(snapshot.docs[0].data());
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setQueues(data);
+      } else {
+        setQueues([]);
       }
     } catch (error) {
-      console.error("Error fetching queue:", error);
-    }
-  }, [userData]);
-
-  useEffect(() => {
-    fetchMyQueue();
-  }, [fetchMyQueue]);
-
-  const handleDaftar = async () => {
-    if (!selectedPoli) {
-      Alert.alert('Peringatan', 'Silakan pilih Poli terlebih dahulu');
-      return;
-    }
-
-    if (antreanKu) {
-      Alert.alert('Peringatan', 'Anda sudah memiliki antrean hari ini.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const hariIni = new Date().toISOString().split('T')[0];
-      
-      // Get the last queue number for today and the selected poli
-      const snapshot = await db.collection('antrean')
-        .where('tanggalStr', '==', hariIni)
-        .where('poli', '==', selectedPoli)
-        .orderBy('nomorAntrean', 'desc')
-        .limit(1)
-        .get();
-        
-      let nextNumber = 1;
-      
-      if (!snapshot.empty) {
-        nextNumber = snapshot.docs[0].data().nomorAntrean + 1;
-      }
-
-      const queueData = {
-        userId: userData?.uid,
-        poli: selectedPoli,
-        nomorAntrean: nextNumber,
-        tanggalStr: hariIni,
-        status: 'Menunggu',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      };
-
-      await db.collection('antrean').add(queueData);
-      Alert.alert('Sukses', 'Berhasil mendaftar antrean!');
-      fetchMyQueue();
-    } catch (error: any) {
-      Alert.alert('Error', error.message);
+      console.error("Error fetching queues:", error);
     } finally {
       setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchQueues();
+    });
+    return unsubscribe;
+  }, [navigation, fetchQueues]);
+
+  useEffect(() => {
+    fetchQueues();
+  }, [fetchQueues]);
+
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'FaskesPertama': return 'stethoscope';
+      case 'KantorCabang': return 'office-building';
+      case 'FaskesRujukan': return 'hospital-building';
+      default: return 'file-document';
+    }
+  };
+
+  const getTitle = (type: string) => {
+    switch (type) {
+      case 'FaskesPertama': return 'Faskes Tingkat Pertama';
+      case 'KantorCabang': return 'Kantor Cabang';
+      case 'FaskesRujukan': return 'Faskes Rujukan';
+      default: return 'Layanan';
     }
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.headerTitle}>Pendaftaran Antrean</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <LinearGradient
+        colors={['#1CB5E0', '#000046']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={COLORS.white} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Info Riwayat Pelayanan</Text>
+        <View style={{ width: 24 }} />
+      </LinearGradient>
 
-      {antreanKu ? (
-        <View style={styles.ticketCard}>
-          <Text style={styles.ticketTitle}>Tiket Antrean Anda</Text>
-          <Text style={styles.ticketDate}>{antreanKu.tanggalStr}</Text>
-          <Text style={styles.poliName}>
-            {antreanKu.poli === 'umum' ? 'Poli Umum' : 'Poli Gigi'}
-          </Text>
-          
-          <View style={styles.numberContainer}>
-            <Text style={styles.queuePrefix}>
-              {antreanKu.poli === 'umum' ? 'A' : 'B'}
-            </Text>
-            <Text style={styles.queueNumber}>
-              {antreanKu.nomorAntrean < 10 ? `0${antreanKu.nomorAntrean}` : antreanKu.nomorAntrean}
-            </Text>
+      <View style={styles.container}>
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color="#0055B8" />
           </View>
-          
-          <Text style={styles.faskesText}>{userData?.faskes}</Text>
-          
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>{antreanKu.status}</Text>
-          </View>
-        </View>
-      ) : (
-        <View style={styles.formCard}>
-          <Text style={styles.label}>Pilih Poliklinik:</Text>
-          <View style={styles.poliContainer}>
-            {poliklinik.map((poli) => (
-              <TouchableOpacity
-                key={poli.id}
-                style={[
-                  styles.poliCard,
-                  selectedPoli === poli.id && styles.poliCardActive
-                ]}
-                onPress={() => setSelectedPoli(poli.id)}
-              >
-                <Ionicons 
-                  name={poli.icon as any} 
-                  size={32} 
-                  color={selectedPoli === poli.id ? COLORS.white : COLORS.primary} 
-                />
-                <Text style={[
-                  styles.poliText,
-                  selectedPoli === poli.id && styles.poliTextActive
-                ]}>{poli.name}</Text>
-              </TouchableOpacity>
+        ) : queues.length > 0 ? (
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+            {queues.map((item) => (
+              <View key={item.id} style={styles.queueCard}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardHeaderLeft}>
+                    <MaterialCommunityIcons name={getIcon(item.type)} size={24} color="#0055B8" />
+                    <Text style={styles.cardTitle}>{getTitle(item.type)}</Text>
+                  </View>
+                  <View style={[styles.statusBadge, { backgroundColor: item.status === 'active' ? COLORS.success : COLORS.darkGray }]}>
+                    <Text style={styles.statusText}>{item.status === 'active' ? 'Aktif' : 'Selesai'}</Text>
+                  </View>
+                </View>
+                
+                <View style={styles.divider} />
+                
+                <View style={styles.cardBody}>
+                  {item.nomor ? (
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Nomor Antrean:</Text>
+                      <Text style={styles.infoValueLarge}>{item.nomor}</Text>
+                    </View>
+                  ) : null}
+                  
+                  {item.tanggal ? (
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Tanggal:</Text>
+                      <Text style={styles.infoValue}>{item.tanggal}</Text>
+                    </View>
+                  ) : null}
+
+                  {item.poli ? (
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Poli:</Text>
+                      <Text style={styles.infoValue}>{item.poli}</Text>
+                    </View>
+                  ) : null}
+                  
+                  {item.lokasi ? (
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Lokasi:</Text>
+                      <Text style={styles.infoValue}>{item.lokasi}</Text>
+                    </View>
+                  ) : null}
+
+                  {item.jadwal ? (
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Jadwal:</Text>
+                      <Text style={styles.infoValue}>{item.jadwal}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              </View>
             ))}
+          </ScrollView>
+        ) : (
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons name="text-box-search-outline" size={80} color="#CFD8DC" style={{ marginBottom: 15 }} />
+            <Text style={styles.emptyText}>Belum ada riwayat pelayanan atau antrean.</Text>
           </View>
-
-          <Text style={styles.labelInfo}>
-            Faskes Anda: {userData?.faskes || '-'}
-          </Text>
-
-          <TouchableOpacity style={styles.button} onPress={handleDaftar} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color={COLORS.white} />
-            ) : (
-              <Text style={styles.buttonText}>Daftar Antrean</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      )}
-    </ScrollView>
+        )}
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: '#F0F4F8' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
+    paddingTop: Platform.OS === 'android' ? 40 : 15,
+    paddingBottom: 15,
+  },
+  backButton: { padding: 5 },
+  headerTitle: { color: COLORS.white, fontSize: 16, fontWeight: 'bold' },
   container: {
     flex: 1,
-    backgroundColor: COLORS.gray,
-    padding: 20,
-    paddingTop: 60,
+    padding: 15,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: 20,
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  formCard: {
+  queueCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 15,
-    padding: 20,
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    borderLeftWidth: 4,
+    borderLeftColor: '#0055B8',
   },
-  label: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: 15,
-  },
-  poliContainer: {
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  poliCard: {
-    width: '48%',
-    borderWidth: 2,
-    borderColor: COLORS.lightGray,
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-  },
-  poliCardActive: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primary,
-  },
-  poliText: {
-    marginTop: 10,
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  poliTextActive: {
-    color: COLORS.white,
-  },
-  labelInfo: {
-    fontSize: 14,
-    color: COLORS.darkGray,
-    marginBottom: 20,
-    fontStyle: 'italic',
-  },
-  button: {
-    backgroundColor: COLORS.primary,
-    padding: 15,
-    borderRadius: 8,
     alignItems: 'center',
   },
-  buttonText: {
-    color: COLORS.white,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  ticketCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 15,
-    padding: 20,
-    alignItems: 'center',
-    elevation: 4,
-    borderTopWidth: 5,
-    borderTopColor: COLORS.primary,
-  },
-  ticketTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  ticketDate: {
-    fontSize: 14,
-    color: COLORS.darkGray,
-    marginTop: 5,
-  },
-  poliName: {
-    fontSize: 20,
-    color: COLORS.primary,
-    fontWeight: 'bold',
-    marginTop: 15,
-  },
-  numberContainer: {
+  cardHeaderLeft: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    marginVertical: 20,
+    alignItems: 'center',
   },
-  queuePrefix: {
-    fontSize: 30,
+  cardTitle: {
+    fontSize: 15,
     fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  queueNumber: {
-    fontSize: 60,
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  faskesText: {
-    fontSize: 14,
-    color: COLORS.text,
-    textAlign: 'center',
-    marginBottom: 15,
+    color: '#0055B8',
+    marginLeft: 8,
   },
   statusBadge: {
-    backgroundColor: COLORS.success,
-    paddingVertical: 5,
-    paddingHorizontal: 15,
-    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   statusText: {
     color: COLORS.white,
+    fontSize: 10,
     fontWeight: 'bold',
   },
+  divider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginVertical: 12,
+  },
+  cardBody: {},
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  infoLabel: {
+    fontSize: 13,
+    color: '#757575',
+  },
+  infoValue: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: COLORS.text,
+    textAlign: 'right',
+    flex: 1,
+    marginLeft: 10,
+  },
+  infoValueLarge: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    textAlign: 'right',
+    flex: 1,
+    marginLeft: 10,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#78909C',
+    textAlign: 'center',
+  }
 });
